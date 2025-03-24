@@ -39,7 +39,7 @@ jobs:
           CLEAN_VERSION=$(echo "$CURRENT_VERSION" | sed -E 's/-hotfix.*//')
           NEW_VERSION=$(npx semver "$CLEAN_VERSION" -i ${{ inputs.version_type }})
           echo "New version: $NEW_VERSION"
-          npm version "$NEW_VERSION" --no-git-tag-version
+          # npm version "$NEW_VERSION" --no-git-tag-version
           echo "version=v$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "branch=release/v$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
@@ -51,8 +51,6 @@ jobs:
       - name: Create release branch
         run: |
           git checkout -b ${{ steps.version.outputs.branch }}
-          git add package.json package-lock.json
-          git commit -m ":bookmark: Bump version to \`${{ steps.version.outputs.version }}\`"
           git push --set-upstream origin ${{ steps.version.outputs.branch }}
 
       - name: Create Pull Request
@@ -64,3 +62,10 @@ jobs:
           --title ":package: Prepare release \`${{ steps.version.outputs.version }}\` and deploy to stage" \
           --body "This is an automated release PR for version \`${{ steps.version.outputs.version }}\`" \
           --label "deployment"
+
+      - name: Bump version
+        run: |
+          npm version "$NEW_VERSION" --no-git-tag-version
+          git add package.json package-lock.json
+          git commit -m ":bookmark: Bump version to \`${{ steps.version.outputs.version }}\`"
+          git push
