@@ -40,7 +40,7 @@ jobs:
           NEW_VERSION=$(npx semver "$CLEAN_VERSION" -i ${{ inputs.version_type }})
           echo "New version: $NEW_VERSION"
           # npm version "$NEW_VERSION" --no-git-tag-version
-          echo "version=v$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "branch=release/v$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Setup git config
@@ -59,13 +59,13 @@ jobs:
         run: |
           gh pr create --base env/stage \
           --head ${{ steps.version.outputs.branch }} \
-          --title ":package: Prepare release \`${{ steps.version.outputs.version }}\` and deploy to stage" \
-          --body "This is an automated release PR for version \`${{ steps.version.outputs.version }}\`" \
+          --title ":package: Prepare release \`v${{ steps.version.outputs.version }}\` and deploy to stage" \
+          --body "This is an automated release PR for version \`v${{ steps.version.outputs.version }}\`" \
           --label "deployment"
 
       - name: Bump version
         run: |
-          npm version "$NEW_VERSION" --no-git-tag-version
+          npm version ${{ steps.version.outputs.version }} --no-git-tag-version
           git add package.json package-lock.json
-          git commit -m ":bookmark: Bump version to \`${{ steps.version.outputs.version }}\`"
+          git commit -m ":bookmark: Bump version to \`v${{ steps.version.outputs.version }}\`"
           git push
