@@ -68,4 +68,14 @@ jobs:
       - name: Resynchronize Pull Request
         run: |
           git commit --amend --no-edit
-          git push --force
+      - name: Sync PR
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        # run: |
+        #   # gh pr update --rebase
+        run: |
+          gh repo sync \
+          --branch ${{ steps.version.outputs.branch }} \
+          --force
+
+
