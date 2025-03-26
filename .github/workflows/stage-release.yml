@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -32,15 +34,14 @@ jobs:
         run: |
           npm install -g semver
 
-      - name: Bump version
+      - name: Extract version
         id: version
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           CLEAN_VERSION=$(echo "$CURRENT_VERSION" | sed -E 's/-hotfix.*//')
           NEW_VERSION=$(npx semver "$CLEAN_VERSION" -i ${{ inputs.version_type }})
           echo "New version: $NEW_VERSION"
-          npm version "$NEW_VERSION" --no-git-tag-version
-          echo "version=v$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "branch=release/v$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Setup git config
@@ -51,8 +52,6 @@ jobs:
       - name: Create release branch
         run: |
           git checkout -b ${{ steps.version.outputs.branch }}
-          git add package.json package-lock.json
-          git commit -m ":bookmark: Bump version to \`${{ steps.version.outputs.version }}\`"
           git push --set-upstream origin ${{ steps.version.outputs.branch }}
 
       - name: Create Pull Request
@@ -61,21 +60,13 @@ jobs:
         run: |
           gh pr create --base env/stage \
           --head ${{ steps.version.outputs.branch }} \
-          --title ":package: Prepare release \`${{ steps.version.outputs.version }}\` and deploy to stage" \
-          --body "This is an automated release PR for version \`${{ steps.version.outputs.version }}\`" \
+          --title ":package: Prepare release \`v${{ steps.version.outputs.version }}\` and deploy to stage" \
+          --body "This is an automated release PR for version \`v${{ steps.version.outputs.version }}\`" \
           --label "deployment"
 
-      - name: Resynchronize Pull Request
+      - name: Bump version
         run: |
-          git commit --amend --no-edit
-      - name: Sync PR
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        # run: |
-        #   # gh pr update --rebase
-        run: |
-          gh repo sync \
-          --branch ${{ steps.version.outputs.branch }} \
-          --force
-
-
+          npm version ${{ steps.version.outputs.version }} --no-git-tag-version
+          git add package.json package-lock.json
+          git commit -m ":bookmark: Bump version to \`v${{ steps.version.outputs.version }}\`"
+          git push
